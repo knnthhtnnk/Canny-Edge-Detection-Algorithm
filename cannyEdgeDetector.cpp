@@ -23,7 +23,6 @@ void convolve2d(Mat inputImg, Mat outputImg, vector<vector<double> > kernel, dou
 int xGradient(Mat outputImg, int x, int y);
 int yGradient(Mat outputImg, int x, int y);
 void edgeDetect(Mat inputImg, Mat outputImg);
-void nonMaxSup();	// Non-Maximum Suppression
 void nonMaxSup(Mat inputImg, Mat outputImg);	// Non-Maximum Suppression
 
 constexpr auto PI = 3.14159265359;
@@ -222,9 +221,6 @@ void convolve2d(Mat inputImg, Mat outputImg, vector<vector<double> > kernel, dou
 	}
 }
 
-// Calculate gradient intensity of image vector
-// Apply Sobel Convolution Masks in X and Y directions
-
 // 1D Sobel Operator in X direction
 int xGradient(Mat outputImg, int x, int y) {
 	return	outputImg.at<uchar>(y - 1, x - 1) +
@@ -279,9 +275,6 @@ void edgeDetect(Mat inputImg, Mat outputImg) {
 	cout << "Left: " << left << endl;
 	cout << "Right: " << right << endl;
 }
-
-// Find gradient strength and direction
-
 
 // Thinning Edges by Non-Maximum Supression // 
 void nonMaxSup(Mat inputImg, Mat outputImg) {
