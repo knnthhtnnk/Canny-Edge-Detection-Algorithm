@@ -24,7 +24,7 @@ int xGradient(Mat outputImg, int x, int y);
 int yGradient(Mat outputImg, int x, int y);
 void edgeDetect(Mat inputImg, Mat outputImg);
 void nonMaxSup();	// Non-Maximum Suppression
-void hysteresis();	// Hysteresis Thresholding
+void nonMaxSup(Mat inputImg, Mat outputImg);	// Non-Maximum Suppression
 
 constexpr auto PI = 3.14159265359;
 
@@ -102,24 +102,29 @@ int main() {
 
 	// Edge Detection //
 	Mat tempImg, temp2Img;
-	imgSmooth.convertTo(tempImg, CV_32SC1, 255);
+	imgSmooth.convertTo(tempImg, CV_32SC1, 255); // tempImg is equivalent to imgSmooth just that it is 32-bit signed
 	temp2Img = tempImg.clone();
-	//imgEdge = imgSmooth.clone();
 	int index2 = (gaussianKernel.size() - 1) / 2;
-	for (int y = index2; y < imgSmooth.rows - index2; y++)
-		for (int x = index2; x < imgSmooth.cols - index2; x++)
+	for (int y = index2; y < tempImg.rows - index2; y++)
+		for (int x = index2; x < tempImg.cols - index2; x++)
 			temp2Img.at<int>(y, x) = 0.0;
 
 	edgeDetect(imgSmooth, temp2Img);
-	temp2Img.convertTo(imgEdge, CV_8UC1, 2);
+	temp2Img.convertTo(imgEdge, CV_8UC1, 2); // temp2Img is equivalent to imgEdge just that it is 32-bit signed
 	imshow("Image Edges", imgEdge);
 
 	// Edge Enhancement by Non-Maximum Suppression //
 
+	Mat temp3Img;
+	temp3Img = temp2Img.clone(); // temp2Img is equivalent to imgEdge just that it is 32-bit signed
+	int index3 = (gaussianKernel.size() - 1) / 2;
+	for (int y = index3; y < temp2Img.rows - index3; y++)
+		for (int x = index3; x < temp2Img.cols - index3; x++)
+			temp3Img.at<int>(y, x) = 0.0;
 
-	// Edge Localisation //
-
-
+	nonMaxSup(temp2Img, temp3Img);
+	temp3Img.convertTo(imgThin, CV_8UC1, 2); // temp3Img is equivalent to imgThin just that it is 32-bit signed
+	imshow("Thinned Image", imgThin);
 
 	waitKey(0);
 
@@ -278,12 +283,53 @@ void edgeDetect(Mat inputImg, Mat outputImg) {
 // Find gradient strength and direction
 
 
-// Non-Maximum Supression
-void nonMaxSup() {
-
-}
-
-// Hysteresis Thresholding
-void hysteresis() {
-
+// Thinning Edges by Non-Maximum Supression // 
+void nonMaxSup(Mat inputImg, Mat outputImg) {
+	int fx, fy;
+	for (int y = 1; y < inputImg.rows - 1; y++) {
+		for (int x = 1; x < inputImg.cols - 1; x++) {
+			fx = xGradient(inputImg, x, y);
+			fy = yGradient(inputImg, x, y);
+			if (abs(fx) > abs(fy)) { // horizontal edge
+				int top = abs(xGradient(inputImg, x - 1, y)) + abs(yGradient(inputImg, x - 1, y));
+				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
+				int bottom = abs(xGradient(inputImg, x + 1, y)) + abs(yGradient(inputImg, x + 1, y));
+				if (center > top && center > bottom) { // center pixel has highest magnitude
+					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
+				}
+				else // center pixel is not highest magnitude
+					outputImg.at<int>(y, x) = 0; // suppress center pixel
+			}
+			else if (abs(fx) < abs(fy)) { // vertical edge
+				int left = abs(xGradient(inputImg, x, y - 1)) + abs(yGradient(inputImg, x, y - 1));
+				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
+				int right = abs(xGradient(inputImg, x, y + 1)) + abs(yGradient(inputImg, x, y + 1));
+				if (center > left && center > right) { // center pixel has highest magnitude
+					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
+				}
+				else // center pixel is not highest magnitude
+					outputImg.at<int>(y, x) = 0; // suppress center pixel
+			}
+			else if ((fx * fy) < 0) { // oblique edge: top left to bottom right
+				int topleft = abs(xGradient(inputImg, x - 1, y - 1)) + abs(yGradient(inputImg, x - 1, y - 1));
+				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
+				int bottomright = abs(xGradient(inputImg, x + 1, y + 1)) + abs(yGradient(inputImg, x + 1, y + 1));
+				if (center > topleft && center > bottomright) { // center pixel has highest magnitude
+					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
+				}
+				else // center pixel is not highest magnitude
+					outputImg.at<int>(y, x) = 0; // suppress center pixel
+			}
+			else if ((fx * fy) > 0) { // oblique edge: bottom left to top right
+				int bottomleft = abs(xGradient(inputImg, x + 1, y - 1)) + abs(yGradient(inputImg, x + 1, y - 1));
+				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
+				int topright = abs(xGradient(inputImg, x - 1, y + 1)) + abs(yGradient(inputImg, x - 1, y + 1));
+				if (center > bottomleft && center > topright) { // center pixel has highest magnitude
+					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
+				}
+				else // center pixel is not highest magnitude
+					outputImg.at<int>(y, x) = 0; // suppress center pixel
+			}
+		}
+	}
 }
