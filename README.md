@@ -1,4 +1,4 @@
-# CannyEdgeDetectionAlgorithm
+# Canny Edge Detection Algorithm
 
 Input: .RAW file
 
