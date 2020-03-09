@@ -4,6 +4,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <math.h>
 #include <vector>
@@ -17,13 +18,15 @@ using namespace std;
 
 // Function Declarations
 Mat convertBinToMat(const char* fileName, int col, int row);	// Convert .RAW binary data into a matrix
-Mat reflectionPadding(Mat image, vector<vector<double> > kernel);	// Padding original image by reflection to avoid border problem after kernel convolution
-double createGaussianKernel(vector<vector<double> > & kernel, double sigma);	// Generates a 2D Gaussian Kernel 
-void convolve2d(Mat inputImg, Mat outputImg, vector<vector<double> > kernel, double kernWeight);	// 2D Convolution with a 5 X 5 Kernel
-int xGradient(Mat outputImg, int x, int y);
-int yGradient(Mat outputImg, int x, int y);
-void edgeDetect(Mat inputImg, Mat outputImg);
-void nonMaxSup(Mat inputImg, Mat outputImg);	// Non-Maximum Suppression
+Mat reflectionPadding(Mat src, vector<vector<double> > kernel);	// Padding original image by reflection to avoid border problem after kernel convolution
+double gaussian(int x, int y, double sigma); // Gaussian Formula
+double createGaussianKernel(vector<vector<double> >& kernel, double sigma);	// Generates a 2D Gaussian Kernel
+Mat initMat(Mat src); // Initialise dst image to be same size as src image but populated with zeros
+Mat convolve2d(Mat src, vector<vector<double> > kernel, bool type); // convolution
+Mat edges(Mat fx, Mat fy); // generates edge map
+Mat nonMaxSup(Mat fx, Mat fy, Mat edges);
+void thin(Mat src, Mat& dst, int type);
+Mat hysteresis(Mat src, int minThresh, int maxThresh);
 
 constexpr auto PI = 3.14159265359;
 
@@ -36,98 +39,103 @@ int rowLeaf = 190, colLeaf = 243;
 
 int main() {
 	
-	Mat imgMat; // Image produced after conversion from .RAW file
-	Mat imgPadded; // Image produced after reflection padding
-	Mat imgSmooth; // Smoothed image after convolution with Gaussian Kernel
-	Mat imgEdge; // Image with edges detected
-	double kernelWeight;
+	//Mat imgMat; // Image produced after conversion from .RAW file
 
 	// To use Cana.raw image
 	const char* fileName = "D:\\cana.raw";
-	imgMat = convertBinToMat(fileName, colCana, rowCana);
+	Mat imgMat = convertBinToMat(fileName, colCana, rowCana);
 
 	// Uncomment to use Fruit.raw image
 	/*const char* fileName = "D:\\fruit.raw";
-	imgMat = convertBinToMat(fileName, colFruit, rowFruit);*/
-	
+	Mat imgMat = convertBinToMat(fileName, colFruit, rowFruit);*/
+
 	// Uncomment to use Img335.raw image
 	/*const char* fileName = "D:\\img335.raw";
-	imgMat = convertBinToMat(fileName, colImg335, rowImg335);*/
-	
+	Mat imgMat = convertBinToMat(fileName, colImg335, rowImg335);*/
+
 	// Uncomment to use Lamp.raw image
 	/*const char* fileName = "D:\\lamp.raw";
-	imgMat = convertBinToMat(fileName, colLamp, rowLamp);*/
-	
+	Mat imgMat = convertBinToMat(fileName, colLamp, rowLamp);*/
+
 	// Uncomment to use Leaf.raw image
 	/*const char* fileName = "D:\\leaf.raw";
-	imgMat = convertBinToMat(fileName, colLeaf, rowLeaf);*/
-
-	imshow("Original Image", imgMat); // display original image
-
-	// Noise Smoothing //
+	Mat imgMat = convertBinToMat(fileName, colLeaf, rowLeaf);*/
+		
+	// Noise Smoothing with Gaussian Kernel //
 	cout << "Enter a Standard Deviation of your choice: ";
 	double sigma;
 	cin >> sigma;
-	
-	vector<vector<double> > gaussianKernel;
 
-	kernelWeight = createGaussianKernel(gaussianKernel, sigma);
-	//cout << kernelIndex << endl;
+	imshow("Original Image", imgMat); // display original image
+
+	vector<vector<double> > gaussianKernel; // Gaussian Kernel
+	createGaussianKernel(gaussianKernel, sigma);
 
 	cout << "\nGaussian Kernel: " << endl;
 
-	for (int i = 0; i < gaussianKernel.size(); ++i)
-	{
-		for (int j = 0; j < gaussianKernel[i].size(); ++j)
+	for (int i = 0; i < gaussianKernel.size(); ++i) {
+		for (int j = 0; j < gaussianKernel[i].size(); ++j) {
 			cout << setprecision(3) << gaussianKernel[i][j] << "\t";
-			cout << endl;
+		}
+		cout << endl;
 	}
 
-	imgPadded = reflectionPadding(imgMat, gaussianKernel); // padding original image to avoid border problem
-	imshow("Padded Image", imgPadded); // for debugging
-	//cout << "No. of Rows of Padded Image: " << imgPadded.rows << endl; // for debugging
-	//cout << "No. of Columns of Padded Image: " << imgPadded.cols << endl; // for debugging
+	Mat imgPadded = reflectionPadding(imgMat, gaussianKernel); // padding original image to avoid border problem
+	//imshow("Padded Image", imgPadded); // for debugging
 
-	imgSmooth = imgPadded.clone();
-	int index1 = (gaussianKernel.size() - 1) / 2;
-	for (int y = index1; y < imgPadded.rows - index1; y++)
-		for (int x = index1; x < imgPadded.cols - index1; x++)
-			imgSmooth.at<uchar>(y, x) = 0.0;
+	Mat imgSmooth = initMat(imgPadded); // initialising smoothed image populated with zeros
+	imgSmooth = convolve2d(imgPadded, gaussianKernel, 0); // imgSmooth is a 8-bit unsigned Mat
+	//imshow("Smoothed Image", imgSmooth); // for debugging
+	
+	// 1D Sobel Kernels
+	/*vector<vector<double> > sobelXkernel{ {-1},{0},{1} };
+	vector<vector<double> > sobelYkernel{ {-1,0,1} };*/
 
-	convolve2d(imgPadded, imgSmooth, gaussianKernel, kernelWeight);
-	imshow("Smoothed Image", imgSmooth); // for debugging
-	//cout << "\nNo. of Rows of Smoothed Image: " << imgSmooth.rows << endl; // for debugging
-	//cout << "No. of Columns of Smoothed Image: " << imgSmooth.cols << endl; // for debugging
+	// 2D Sobel Kernels
+	vector<vector<double> > sobelXkernel{	{-1, 0, 1},
+											{-2, 0, 2},
+											{-1, 0, 1} };
+	vector<vector<double> > sobelYkernel{	{1, 2, 1},
+											{0, 0, 0},
+											{-1, -2, -1} };
+	
+	// 2D Prewitt Kernels
+	/*vector<vector<double> > sobelXkernel{	{-1, 0, 1},
+											{-1, 0, 1},
+											{-1, 0, 1} };
+	vector<vector<double> > sobelYkernel{	{1, 1, 1},
+											{0, 0, 0},
+											{-1, -1, -1} };*/
+	
+	Mat fx = initMat(imgSmooth);
+	Mat fy = initMat(imgSmooth);
 
-	// Edge Detection //
-	Mat tempImg, temp2Img;
-	imgSmooth.convertTo(tempImg, CV_32SC1, 255); // tempImg is equivalent to imgSmooth just that it is 32-bit signed
-	temp2Img = tempImg.clone();
-	int index2 = (gaussianKernel.size() - 1) / 2;
-	for (int y = index2; y < tempImg.rows - index2; y++)
-		for (int x = index2; x < tempImg.cols - index2; x++)
-			temp2Img.at<int>(y, x) = 0.0;
+	// Convoluting smoothed image with horizontal & vertical Sobel Kernels //
+	fx = convolve2d(imgSmooth, sobelXkernel, 1); // fx is a 32-bit signed horizontal derivative of imgSmooth
+	fy = convolve2d(imgSmooth, sobelYkernel, 1); // fy is a 32-bit signed vertical derivative of imgSmooth
+	//Mat Fx, Fy;
+	//fx.convertTo(Fx, CV_8UC1); // convert to 8-bit unsigned to display
+	//fy.convertTo(Fy, CV_8UC1); // convert to 8-bit unsigned to display
+	//imshow("Fx", Fx);
+	//imshow("Fy", Fy);
 
-	edgeDetect(imgSmooth, temp2Img);
-	temp2Img.convertTo(imgEdge, CV_8UC1, 2); // temp2Img is equivalent to imgEdge just that it is 32-bit signed
-	imshow("Image Edges", imgEdge);
+	// Computing Edge Map // 
+	Mat imgEdge = edges(fx, fy);
+	imgEdge.convertTo(imgEdge, CV_8UC1);
+	//imshow("Image Edge Map", imgEdge);
 
-	// Edge Enhancement by Non-Maximum Suppression //
-
-	Mat temp3Img;
-	temp3Img = temp2Img.clone(); // temp2Img is equivalent to imgEdge just that it is 32-bit signed
-	int index3 = (gaussianKernel.size() - 1) / 2;
-	for (int y = index3; y < temp2Img.rows - index3; y++)
-		for (int x = index3; x < temp2Img.cols - index3; x++)
-			temp3Img.at<int>(y, x) = 0.0;
-
-	nonMaxSup(temp2Img, temp3Img);
-	temp3Img.convertTo(imgThin, CV_8UC1, 2); // temp3Img is equivalent to imgThin just that it is 32-bit signed
+	// Non-Maximum Suppression //
+	Mat imgThin = nonMaxSup(fx, fy, imgEdge);
 	imshow("Thinned Image", imgThin);
 
-	waitKey(0);
+	// Hysteresis Thresholding //
+	int minThresh = 20; // minimum pixel value to be considered an edge
+	int maxThresh = 180; // maximum pixel value to be considered an edge
+	Mat imgHyst = hysteresis(imgThin, minThresh, maxThresh);
+	imshow("Image after Hysteresis", imgHyst);
 
-return 0;
+	waitKey(0);
+	return 0;
 }
 
 // Function Definitions
@@ -137,7 +145,7 @@ Mat convertBinToMat(const char* fileName, int col, int row) {
 	ifstream input(fileName, ios::binary);
 	vector<uchar> originalBuffer(istreambuf_iterator<char>(input), {});
 	vector<uchar> buffer(originalBuffer.begin(), originalBuffer.end());
-	Mat image = Mat(col, row, CV_8UC1);
+	Mat image = Mat(col, row, CV_8UC1); // 8 bit unsigned single cahnnel image
 	memcpy(image.data, buffer.data(), buffer.size() * sizeof(unsigned char));
 	//imshow("Original Image", image); // for debugging
 
@@ -146,183 +154,268 @@ Mat convertBinToMat(const char* fileName, int col, int row) {
 	return image;
 }
 
-// Padding input image by reflection so that original image dimensions are retained after kernel convolution
-Mat reflectionPadding(Mat image, vector<vector<double> > kernel) {
-	int border = (kernel.size() - 1) / 2;
-	Mat padded(image.rows + border * 2, image.cols + border * 2, image.depth()); // constructs a larger image to fit both the image and the border
-	copyMakeBorder(image, padded, border, border, border, border, BORDER_REPLICATE); // form a border in-place
-	//imshow("Padded Image", padded); // for debugging
-
-	cout << "\nReflection Padding Successful!" << endl;
-
-	return padded;
-}
-
 // Gaussian Formula
 double gaussian(int x, int y, double sigma) {
 	return (1 / (2 * PI * pow(sigma, 2))) * exp(-1 * (pow(x, 2) + pow(y, 2)) / (2 * pow(sigma, 2)));
 }
 
 // Generating a 2D Gaussian Kernel to smooth the image vector
-double createGaussianKernel(vector<vector<double> > & kernel, double sigma) {
-	int kernRow = 0, kernIndex = 0;
-	double kernWeight = 0;
-	if (fmod(sigma, 2) == 0) { // checking if sigma is an even or odd number
-		kernRow = 5 * sigma + 1; // sigma is even
-		cout << "Standard Deviation Entered: sigma = " << sigma << " (EVEN)\n" << endl;
-		//cout << "Sigma = " << sigma << " is EVEN" << endl;
-		cout << "Kernel Size: " << kernRow << " X " << kernRow << endl;
-		kernIndex = (kernRow - 1) / 2;
-		cout << "Kernal Indexing from: " << -1 * kernIndex << " to " << kernIndex << endl;
+double createGaussianKernel(vector<vector<double> >& kernel, double sigma) {
+	double temp = 0.0, temp2 = 0.0, temp3 = 0.0;
+	double kernRow = 0.0, kernIndex = 0.0;
+	double kernWeight = 0.0;
+	if (sigma >= 1) { // checking if sigma is greater than 1
+		if (fmod(sigma, 2) == 0) { // checking if sigma is an even integer
+			kernRow = 5 * sigma + 1; // sigma is an even integer
+			cout << "Standard Deviation Entered: sigma = " << sigma << " (EVEN integer: greater than 1)\n" << endl;
+			//cout << "Sigma = " << sigma << " is EVEN: greater than 1" << endl;
+			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
+		}
+		if (fmod(sigma, 2) == 1) { // checking if sigma is an odd integer
+			kernRow = 5 * sigma; // sigma is an odd integer
+			cout << "Standard Deviation Entered: sigma = " << sigma << " (ODD integer: greater than 1)\n" << endl;
+			//cout << "Sigma = " << sigma << " is ODD: greater than 1" << endl;
+			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
+		}
+		else { // sigma is NOT an integer
+			temp = 5 * sigma;
+			temp2 = ceil(temp); // rounding up to nearest integer
+			if (fmod(temp2, 2) == 0) { // checking if sigma is an even number
+				temp3 = (5 * sigma) - 1;
+				kernRow = ceil(temp3);
+			}
+			if (fmod(temp2, 2) == 1) { // checking if sigma is an odd number
+				temp3 = 5 * sigma;
+				kernRow = ceil(temp3);
+			}
+			cout << "Standard Deviation Entered: sigma = " << sigma << " (NON-integer: greater than 1)\n" << endl;
+			//cout << "Sigma = " << sigma << " is ODD: greater than 1" << endl;
+			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
+		}
 	}
-	else {
-		kernRow = 5* sigma; // sigma is odd
-		cout << "Standard Deviation Entered: sigma = " << sigma << " (ODD)\n" << endl;
-		//cout << "Sigma = " << sigma << " is ODD" << endl;
-		cout << "Kernel Size: " << kernRow << " X " << kernRow << endl;
-		kernIndex = (kernRow - 1) / 2;
-		cout << "Kernel Indexing from: " << -1 * kernIndex << " to " << kernIndex << endl;
+	if (sigma < 1) { // checking if sigma is less than 1
+		kernRow = 3; // assign smallest kernel size: 3
+		cout << "Standard Deviation Entered: sigma = " << sigma << " (NON-integer: less than 1)\n" << endl;
+		//cout << "Sigma = " << sigma << " is less than 1" << endl;
+		cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
 	}
-	
-	double smallest = gaussian(-1 * kernIndex, -1 * kernIndex, sigma);
+
+	kernIndex = (kernRow - 1) / 2;
+	cout << "Gaussian Kernal Indexing from: " << -1 * kernIndex << " to " << kernIndex << endl;
+
+	double filter = gaussian(-1 * kernIndex, -1 * kernIndex, sigma);
 	//cout << "Gaussian: " << gaussian << endl; // for debugging
 
-	for (int i = -1 * kernIndex; i <= kernIndex; i++) {
-		vector<double> temp;
-		for (int j = -1 * kernIndex; j <= kernIndex; j++) {
-			int gVal = round(gaussian(i, j, sigma) / smallest);
-			temp.push_back(gVal);
-			kernWeight += gVal;
+	for (int row = -1 * kernIndex; row <= kernIndex; row++) {
+		vector<double> tempKern;
+		for (int col = -1 * kernIndex; col <= kernIndex; col++) {
+			int val = round(gaussian(row, col, sigma) / filter);
+			tempKern.push_back(val);
+			kernWeight += val;
 		}
-		kernel.push_back(temp);
+		kernel.push_back(tempKern);
 	}
-	
-	cout << "Weighted Sum: " << kernWeight << endl;
+
+	cout << "Gaussian Kernal Weighted Sum: " << kernWeight << endl;
 
 	return kernWeight;
 }
 
-// 2D Convolution with a 5 X 5 Kernel
-void convolve2d(Mat inputImg, Mat outputImg, vector<vector<double> > kernel, double kernWeight) {
-	inputImg.convertTo(outputImg, CV_8UC1); // convert inputImg into type CV_8UC1 (8bit, single channel) and store into outputImg
-	//float row = 2, col = 2; // for indexing inputImg
-	int kernIndex = (kernel.size() - 1) / 2; // getting the kernel index from the size of kernel
-	//cout << "kernIndex: " << kernIndex << endl; // for debugging
-	for (int row = kernIndex; row < inputImg.rows - kernIndex; row++) {		// inputImg rows
-		for (int col = kernIndex; col < inputImg.cols - kernIndex; col++) {	// inputImg columns
+// Padding input image by reflection so that original image dimensions are retained after kernel convolution
+Mat reflectionPadding(Mat src, vector<vector<double> > kernel) {
+	int border = (kernel.size() - 1) / 2;
+	Mat dst(src.rows + border * 2, src.cols + border * 2, src.depth()); // constructs a larger image to fit both the image and the border
+	copyMakeBorder(src, dst, border, border, border, border, BORDER_REPLICATE); // form a border in-place
+	//imshow("Padded Image", padded); // for debugging
+
+	cout << "\nReflection Padding Successful!" << endl;
+	//cout << "No. of Rows of Padded Image: " << dst.rows << endl; // for debugging
+	//cout << "No. of Columns of Padded Image: " << dst.cols << endl; // for debugging
+
+	return dst;
+}
+
+// Initialises dst image to the same size as src and populated with zeros
+Mat initMat(Mat src) {
+	Mat dst = src.clone();
+	for (int y = 0; y < src.rows; y++) {
+		for (int x = 0; x < src.cols; x++) {
+			if (src.type() == 0) { // CV_8UC1
+				dst.at<uchar>(y, x) = 0.0;
+			}
+			if (src.type() == 4) { // CV_32SC1
+				dst.at<int>(y, x) = 0.0;
+			}
+		}
+	}
+	return dst;
+}
+
+// 2D Convolution with specified kernel
+Mat convolve2d(Mat src, vector<vector<double> > kernel, bool type) {
+	Mat dst; // output image
+	int kernXcenter = floor(kernel.size() / 2);
+	int kernYcenter = floor(kernel[0].size() / 2);
+
+	if (type) { // checking Mat image type
+		//dst = cv::Mat::zeros(src.size(), CV_32SC1); // initialise the dst image as 32-bit signed
+		src.convertTo(dst, CV_32SC1);
+	}
+	else {
+		//dst = cv::Mat::zeros(src.size(), CV_8UC1); // initialise the dst image as 8-bit unsigned
+		src.convertTo(dst, CV_8UC1);
+	}
+	for (int row = kernXcenter; row < src.rows - kernXcenter; row++) {
+		for (int col = kernYcenter; col < src.cols - kernYcenter; col++) {
+			double total = 0;
 			double weightedSum = 0;
-			for (int i = -1 * kernIndex; i <= kernIndex; i++) {		// kernel rows
-				for (int j = -1 * kernIndex; j <= kernIndex; j++) {	// kernel columns
-					weightedSum += kernel[i + kernIndex][j + kernIndex] * inputImg.at<uchar>(row + i, col + j); // single pixel convolution
+			for (int i = -1 * kernXcenter; i <= kernXcenter; i++) {
+				for (int j = -1 * kernYcenter; j <= kernYcenter; j++) {
+					weightedSum += kernel[kernXcenter + i][kernYcenter + j];
+					total += kernel[kernXcenter + i][kernYcenter + j] * src.at<uchar>(row + i, col + j);
 				}
 			}
-			outputImg.at<uchar>(row, col) = weightedSum/kernWeight; // assign to the pixel the weighted sum of its neighbouring pixels
+			if (type)
+				dst.at<int>(row, col) = (int)round(total / max(weightedSum, 1.0));
+			else
+				dst.at<uchar>(row, col) = (uchar)round(total / max(weightedSum, 1.0));
 		}
+	}
+
+	cout << "\nConvolution Successful!" << endl;
+
+	return dst;
+}
+
+// Forms the edge map from x and y Sobel derivatives of an image
+Mat edges(Mat fx, Mat fy) {
+	Mat dst;
+	fx = abs(fx);
+	fy = abs(fy);
+
+	fx.convertTo(fx, CV_32F);
+	fy.convertTo(fy, CV_32F);
+	
+	// magnitude = |fx| + |fy|
+	dst = fx + fy;
+
+	// magnitude = sqrt(fx^2 + fy^2)
+	/*add(fx.mul(fx), fy.mul(fy), dst);
+	sqrt(dst, dst);*/
+	
+	cout << "\nEdge Map Produced Successfully!" << endl;
+
+	return dst; // dst is a 32-bit signed Mat
+}
+
+Mat nonMaxSup(Mat fx, Mat fy, Mat edges) {
+	Mat horizontal, vertical, oblique1, oblique2;
+
+	subtract(abs(fx), abs(fy), horizontal);
+	subtract(horizontal, 100, horizontal);
+	horizontal = max(horizontal, 0);
+
+	subtract(abs(fy), abs(fx), vertical);
+	subtract(vertical, 100, vertical);
+	vertical = max(vertical, 0);
+
+	multiply(fx, fy, oblique1);
+	oblique1 = max(-1 * oblique1, 0);
+
+	multiply(fx, fy, oblique2);
+	oblique2 = max(oblique2, 0);
+
+	thin(edges, horizontal, 1);
+	thin(edges, vertical, 2);
+	thin(edges, oblique1, 3);
+	thin(edges, oblique2, 4);
+
+	Mat dst = horizontal + vertical + oblique1 + oblique2;
+	dst.convertTo(dst, CV_8UC1);
+
+	cout << "\nNon-Maximum Suppression Successful!" << endl;
+
+	return dst;
+}
+
+void thin(Mat src, Mat& dst, int type) {
+	dst.convertTo(dst, CV_8UC1);
+
+	switch (type) {
+	case 1:
+		for (size_t x = 1; x < src.rows - 1; x++) {
+			for (size_t y = 0; y < src.cols; y++) {
+				//if (dst.at<uchar>(x, y) > 0) {
+					if ((src.at<uchar>(x, y) > src.at<uchar>(x - 1, y) && src.at<uchar>(x, y) > src.at<uchar>(x + 1, y))) {
+						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
+					}
+					else
+						dst.at<uchar>(x, y) = 0;
+				//}
+			}
+		}
+		break;
+
+	case 2:
+		for (size_t x = 0; x < src.rows; x++) {
+			for (size_t y = 1; y < src.cols - 1; y++) {
+				//if (dst.at<uchar>(x, y) > 0) {
+					if ((src.at<uchar>(x, y) > src.at<uchar>(x, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x, y + 1))) {
+						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
+					}
+					else
+						dst.at<uchar>(x, y) = 0;
+				//}
+			}
+		}
+		break;
+	case 3:
+		for (size_t x = 1; x < src.rows - 1; x++) {
+			for (size_t y = 1; y < src.cols - 1; y++) {
+				//if (dst.at<uchar>(x, y) > 0) {
+					if ((src.at<uchar>(x, y) > src.at<uchar>(x + 1, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x - 1, y + 1))) {
+						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
+					}
+					else
+						dst.at<uchar>(x, y) = 0;
+				//}
+			}
+		}
+		break;
+
+	case 4:
+		for (size_t x = 1; x < src.rows - 1; x++) {
+			for (size_t y = 1; y < src.cols - 1; y++) {
+				//if (dst.at<uchar>(x, y) > 0) {
+					if ((src.at<uchar>(x, y) > src.at<uchar>(x - 1, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x + 1, y + 1))) {
+						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
+					}
+					else
+						dst.at<uchar>(x, y) = 0;
+				//}
+			}
+		}
+		break;
 	}
 }
 
-// 1D Sobel Operator in X direction
-int xGradient(Mat outputImg, int x, int y) {
-	return	outputImg.at<uchar>(y - 1, x - 1) +
-			2 * outputImg.at<uchar>(y, x - 1) +
-			outputImg.at<uchar>(y + 1, x - 1) -
-			outputImg.at<uchar>(y - 1, x + 1) -
-			2 * outputImg.at<uchar>(y, x + 1) -
-			outputImg.at<uchar>(y + 1, x + 1);
-}
-
-// 1D Sobel Operator in Y direction
-int yGradient(Mat outputImg, int x, int y) {
-	return	outputImg.at<uchar>(y - 1, x - 1) +
-			2 * outputImg.at<uchar>(y - 1, x) +
-			outputImg.at<uchar>(y - 1, x + 1) -
-			outputImg.at<uchar>(y + 1, x - 1) -
-			2 * outputImg.at<uchar>(y + 1, x) -
-			outputImg.at<uchar>(y + 1, x + 1);
-}
-
-// Detects edges in the input image using two 1D Sobel Operators
-void edgeDetect(Mat inputImg, Mat outputImg) {
-	int fx, fy, magnitude, magSum;
-	float up = 0, down = 0, left = 0, right = 0;
-	float dir, dirSum;
-	for (int y = 1; y < inputImg.rows - 1; y++) {
-		for (int x = 1; x < inputImg.cols - 1; x++) {
-			fx = xGradient(inputImg, x, y);
-			fy = yGradient(inputImg, x, y);
-			
-			// this is the actual formula but it requires high comuting power to evaluate
-			//magnitude = sqrt(pow(fx, 2) + pow(fy, 2));
-			// thus the formula in the next line is used which gives an accurate approximation
-			magnitude = abs(fx) + abs(fy); // gradient magnitudes
-			
-			dir = atan2(fy, fx) * 180 / PI; // gradient direction in degrees
-			
-			if (dir == 0.0 || dir == 360.0)
-				up++;
-			else if (dir == 90.0)
-				right++;
-			else if (dir == 180.0)
-				down++;
-			else if (dir == 270.0)
-				left++;
-
-			outputImg.at<int>(y, x) = magnitude;
-		}
-	}
-	cout << "Up: " << up << endl;
-	cout << "Down: " << down << endl;
-	cout << "Left: " << left << endl;
-	cout << "Right: " << right << endl;
-}
-
-// Thinning Edges by Non-Maximum Supression // 
-void nonMaxSup(Mat inputImg, Mat outputImg) {
-	int fx, fy;
-	for (int y = 1; y < inputImg.rows - 1; y++) {
-		for (int x = 1; x < inputImg.cols - 1; x++) {
-			fx = xGradient(inputImg, x, y);
-			fy = yGradient(inputImg, x, y);
-			if (abs(fx) > abs(fy)) { // horizontal edge
-				int top = abs(xGradient(inputImg, x - 1, y)) + abs(yGradient(inputImg, x - 1, y));
-				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
-				int bottom = abs(xGradient(inputImg, x + 1, y)) + abs(yGradient(inputImg, x + 1, y));
-				if (center > top && center > bottom) { // center pixel has highest magnitude
-					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
-				}
-				else // center pixel is not highest magnitude
-					outputImg.at<int>(y, x) = 0; // suppress center pixel
+Mat hysteresis(Mat src, int minThresh, int maxThresh) {
+	Mat dst = initMat(src);
+	for (int row = 0; row <= src.rows - 1; row++) {
+		for (int col = 0; col <= src.cols - 1; col++) {
+			// less than minimum threshold: non-edge (discarded)
+			if (src.at<uchar>(row, col) < minThresh) {
+				dst.at<uchar>(row, col) = 0;
 			}
-			else if (abs(fx) < abs(fy)) { // vertical edge
-				int left = abs(xGradient(inputImg, x, y - 1)) + abs(yGradient(inputImg, x, y - 1));
-				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
-				int right = abs(xGradient(inputImg, x, y + 1)) + abs(yGradient(inputImg, x, y + 1));
-				if (center > left && center > right) { // center pixel has highest magnitude
-					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
-				}
-				else // center pixel is not highest magnitude
-					outputImg.at<int>(y, x) = 0; // suppress center pixel
-			}
-			else if ((fx * fy) < 0) { // oblique edge: top left to bottom right
-				int topleft = abs(xGradient(inputImg, x - 1, y - 1)) + abs(yGradient(inputImg, x - 1, y - 1));
-				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
-				int bottomright = abs(xGradient(inputImg, x + 1, y + 1)) + abs(yGradient(inputImg, x + 1, y + 1));
-				if (center > topleft && center > bottomright) { // center pixel has highest magnitude
-					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
-				}
-				else // center pixel is not highest magnitude
-					outputImg.at<int>(y, x) = 0; // suppress center pixel
-			}
-			else if ((fx * fy) > 0) { // oblique edge: bottom left to top right
-				int bottomleft = abs(xGradient(inputImg, x + 1, y - 1)) + abs(yGradient(inputImg, x + 1, y - 1));
-				int center = abs(xGradient(inputImg, x, y)) + abs(yGradient(inputImg, x, y));
-				int topright = abs(xGradient(inputImg, x - 1, y + 1)) + abs(yGradient(inputImg, x - 1, y + 1));
-				if (center > bottomleft && center > topright) { // center pixel has highest magnitude
-					outputImg.at<int>(y, x) = center; // assign center pixel its edge magnitude
-				}
-				else // center pixel is not highest magnitude
-					outputImg.at<int>(y, x) = 0; // suppress center pixel
+			// between min & max threshold: retained if connected to sure-edge, otherwise discarded
+			/*if (src.at<uchar>(row, col) >= minThresh && src.at<uchar>(row, col) <= maxThresh) {
+
+			}*/
+			// more than maximum threshold: sure-edge (retained)
+			if (src.at<uchar>(row, col) > maxThresh) {
+				dst.at<uchar>(row, col) = 255;
 			}
 		}
 	}
+	return dst;
 }
