@@ -38,28 +38,51 @@ int rowLamp = 256, colLamp = 256;
 int rowLeaf = 190, colLeaf = 243;
 
 int main() {
-	
-	//Mat imgMat; // Image produced after conversion from .RAW file
+	const char* cana = "D:\\cana.raw";
+	const char* fruit = "D:\\fruit.raw";
+	const char* img335 = "D:\\img335.raw";
+	const char* lamp = "D:\\lamp.raw";
+	const char* leaf = "D:\\leaf.raw";
 
-	// To use Cana.raw image
-	const char* fileName = "D:\\cana.raw";
-	Mat imgMat = convertBinToMat(fileName, colCana, rowCana);
+	Mat imgMat;
 
-	// Uncomment to use Fruit.raw image
-	/*const char* fileName = "D:\\fruit.raw";
-	Mat imgMat = convertBinToMat(fileName, colFruit, rowFruit);*/
+	bool valid;
 
-	// Uncomment to use Img335.raw image
-	/*const char* fileName = "D:\\img335.raw";
-	Mat imgMat = convertBinToMat(fileName, colImg335, rowImg335);*/
+	do {
+		cout << "\nWhich image do you want to use?\n" << endl;
+		cout << "1: Cana.raw \n2: Fruit.raw \n3: Img335.raw \n4: Lamp.raw \n5: Leaf.raw" << endl;
+		//cout << "1: Cana.raw" << endl << "2: Fruit.raw" << endl << "3: Img335.raw" << endl << "4: Lamp.raw" << endl << "5: Leaf.raw" << endl;
+		cout << "\nPlease enter your choice: ";
+		int choice;
+		cin >> choice;
 
-	// Uncomment to use Lamp.raw image
-	/*const char* fileName = "D:\\lamp.raw";
-	Mat imgMat = convertBinToMat(fileName, colLamp, rowLamp);*/
-
-	// Uncomment to use Leaf.raw image
-	/*const char* fileName = "D:\\leaf.raw";
-	Mat imgMat = convertBinToMat(fileName, colLeaf, rowLeaf);*/
+		switch (choice) {
+		case 1:
+			imgMat = convertBinToMat(cana, colCana, rowCana);
+			valid = true;
+			break;
+		case 2:
+			imgMat = convertBinToMat(fruit, colFruit, rowFruit);
+			valid = true;
+			break;
+		case 3:
+			imgMat = convertBinToMat(img335, colImg335, rowImg335);
+			valid = true;
+			break;
+		case 4:
+			imgMat = convertBinToMat(lamp, colLamp, rowLamp);
+			valid = true;
+			break;
+		case 5:
+			imgMat = convertBinToMat(leaf, colLeaf, rowLeaf);
+			valid = true;
+			break;
+		default:
+			cout << "\nPlease enter an integer from 1 to 5!" << endl;
+			valid = false;
+			break;
+		}
+	} while (!valid);
 		
 	// Noise Smoothing with Gaussian Kernel //
 	cout << "Enter a Standard Deviation of your choice: ";
