@@ -337,21 +337,65 @@ Mat nonMaxSup(Mat fx, Mat fy, Mat edges) {
 	subtract(abs(fx), abs(fy), horizontal);
 	subtract(horizontal, 100, horizontal);
 	horizontal = max(horizontal, 0);
+	horizontal.convertTo(horizontal, CV_8UC1);
+
+	for (size_t x = 1; x < edges.rows - 1; x++) {
+		for (size_t y = 0; y < edges.cols; y++) {
+			if ((edges.at<uchar>(x, y) > edges.at<uchar>(x - 1, y) && edges.at<uchar>(x, y) > edges.at<uchar>(x + 1, y))) {
+				horizontal.at<uchar>(x, y) = edges.at<uchar>(x, y);
+			}
+			else
+				horizontal.at<uchar>(x, y) = 0;
+		}
+	}
 
 	subtract(abs(fy), abs(fx), vertical);
 	subtract(vertical, 100, vertical);
 	vertical = max(vertical, 0);
+	vertical.convertTo(vertical, CV_8UC1);
+
+	for (size_t x = 0; x < edges.rows; x++) {
+		for (size_t y = 1; y < edges.cols - 1; y++) {
+			if ((edges.at<uchar>(x, y) > edges.at<uchar>(x, y - 1) && edges.at<uchar>(x, y) > edges.at<uchar>(x, y + 1))) {
+				vertical.at<uchar>(x, y) = edges.at<uchar>(x, y);
+			}
+			else
+				vertical.at<uchar>(x, y) = 0;
+		}
+	}
 
 	multiply(fx, fy, oblique1);
 	oblique1 = max(-1 * oblique1, 0);
+	oblique1.convertTo(oblique1, CV_8UC1);
+
+	for (size_t x = 1; x < edges.rows - 1; x++) {
+		for (size_t y = 1; y < edges.cols - 1; y++) {
+			if ((edges.at<uchar>(x, y) > edges.at<uchar>(x + 1, y - 1) && edges.at<uchar>(x, y) > edges.at<uchar>(x - 1, y + 1))) {
+				oblique1.at<uchar>(x, y) = edges.at<uchar>(x, y);
+			}
+			else
+				oblique1.at<uchar>(x, y) = 0;
+		}
+	}
 
 	multiply(fx, fy, oblique2);
 	oblique2 = max(oblique2, 0);
+	oblique2.convertTo(oblique2, CV_8UC1);
 
-	thin(edges, horizontal, 1);
+	for (size_t x = 1; x < edges.rows - 1; x++) {
+		for (size_t y = 1; y < edges.cols - 1; y++) {
+			if ((edges.at<uchar>(x, y) > edges.at<uchar>(x - 1, y - 1) && edges.at<uchar>(x, y) > edges.at<uchar>(x + 1, y + 1))) {
+				oblique2.at<uchar>(x, y) = edges.at<uchar>(x, y);
+			}
+			else
+				oblique2.at<uchar>(x, y) = 0;
+		}
+	}
+
+	/*thin(edges, horizontal, 1);
 	thin(edges, vertical, 2);
 	thin(edges, oblique1, 3);
-	thin(edges, oblique2, 4);
+	thin(edges, oblique2, 4);*/
 
 	Mat dst = horizontal + vertical + oblique1 + oblique2;
 	dst.convertTo(dst, CV_8UC1);
@@ -359,67 +403,6 @@ Mat nonMaxSup(Mat fx, Mat fy, Mat edges) {
 	cout << "\nNon-Maximum Suppression Successful!" << endl;
 
 	return dst;
-}
-
-void thin(Mat src, Mat& dst, int type) {
-	dst.convertTo(dst, CV_8UC1);
-
-	switch (type) {
-	case 1:
-		for (size_t x = 1; x < src.rows - 1; x++) {
-			for (size_t y = 0; y < src.cols; y++) {
-				//if (dst.at<uchar>(x, y) > 0) {
-					if ((src.at<uchar>(x, y) > src.at<uchar>(x - 1, y) && src.at<uchar>(x, y) > src.at<uchar>(x + 1, y))) {
-						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
-					}
-					else
-						dst.at<uchar>(x, y) = 0;
-				//}
-			}
-		}
-		break;
-
-	case 2:
-		for (size_t x = 0; x < src.rows; x++) {
-			for (size_t y = 1; y < src.cols - 1; y++) {
-				//if (dst.at<uchar>(x, y) > 0) {
-					if ((src.at<uchar>(x, y) > src.at<uchar>(x, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x, y + 1))) {
-						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
-					}
-					else
-						dst.at<uchar>(x, y) = 0;
-				//}
-			}
-		}
-		break;
-	case 3:
-		for (size_t x = 1; x < src.rows - 1; x++) {
-			for (size_t y = 1; y < src.cols - 1; y++) {
-				//if (dst.at<uchar>(x, y) > 0) {
-					if ((src.at<uchar>(x, y) > src.at<uchar>(x + 1, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x - 1, y + 1))) {
-						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
-					}
-					else
-						dst.at<uchar>(x, y) = 0;
-				//}
-			}
-		}
-		break;
-
-	case 4:
-		for (size_t x = 1; x < src.rows - 1; x++) {
-			for (size_t y = 1; y < src.cols - 1; y++) {
-				//if (dst.at<uchar>(x, y) > 0) {
-					if ((src.at<uchar>(x, y) > src.at<uchar>(x - 1, y - 1) && src.at<uchar>(x, y) > src.at<uchar>(x + 1, y + 1))) {
-						dst.at<uchar>(x, y) = src.at<uchar>(x, y);
-					}
-					else
-						dst.at<uchar>(x, y) = 0;
-				//}
-			}
-		}
-		break;
-	}
 }
 
 Mat hysteresis(Mat src, int minThresh, int maxThresh) {
