@@ -25,7 +25,6 @@ Mat initMat(Mat src); // Initialise dst image to be same size as src image but p
 Mat convolve2d(Mat src, vector<vector<double> > kernel, bool type); // convolution
 Mat edges(Mat fx, Mat fy); // generates edge map
 Mat nonMaxSup(Mat fx, Mat fy, Mat edges);
-void thin(Mat src, Mat& dst, int type);
 Mat hysteresis(Mat src, int minThresh, int maxThresh);
 
 constexpr auto PI = 3.14159265359;
