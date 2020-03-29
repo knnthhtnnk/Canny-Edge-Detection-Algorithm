@@ -183,37 +183,21 @@ double gaussian(int x, int y, double sigma) {
 
 // Generating a 2D Gaussian Kernel to smooth the image vector
 double createGaussianKernel(vector<vector<double> >& kernel, double sigma) {
-	double temp = 0.0, temp2 = 0.0, temp3 = 0.0;
+	double temp = 0.0, temp2 = 0.0;
 	double kernRow = 0.0, kernIndex = 0.0;
 	double kernWeight = 0.0;
 	if (sigma >= 1) { // checking if sigma is greater than 1
-		if (fmod(sigma, 2) == 0) { // checking if sigma is an even integer
-			kernRow = 5 * sigma + 1; // sigma is an even integer
-			cout << "Standard Deviation Entered: sigma = " << sigma << " (EVEN integer: greater than 1)\n" << endl;
-			//cout << "Sigma = " << sigma << " is EVEN: greater than 1" << endl;
-			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
+		temp = ceil(sigma); // rounding up to nearest integer
+		if (fmod(temp, 2) == 0) { // checking if sigma is an even number
+			temp2 = (5 * temp) + 1;
+			kernRow = temp2;
 		}
-		if (fmod(sigma, 2) == 1) { // checking if sigma is an odd integer
-			kernRow = 5 * sigma; // sigma is an odd integer
-			cout << "Standard Deviation Entered: sigma = " << sigma << " (ODD integer: greater than 1)\n" << endl;
-			//cout << "Sigma = " << sigma << " is ODD: greater than 1" << endl;
-			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
+		if (fmod(temp, 2) == 1) { // checking if sigma is an odd number
+			temp2 = 5 * temp;
+			kernRow = temp2;
 		}
-		else { // sigma is NOT an integer
-			temp = 5 * sigma;
-			temp2 = ceil(temp); // rounding up to nearest integer
-			if (fmod(temp2, 2) == 0) { // checking if sigma is an even number
-				temp3 = (5 * sigma) - 1;
-				kernRow = ceil(temp3);
-			}
-			if (fmod(temp2, 2) == 1) { // checking if sigma is an odd number
-				temp3 = 5 * sigma;
-				kernRow = ceil(temp3);
-			}
-			cout << "Standard Deviation Entered: sigma = " << sigma << " (NON-integer: greater than 1)\n" << endl;
-			//cout << "Sigma = " << sigma << " is ODD: greater than 1" << endl;
-			cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
-		}
+		cout << "Standard Deviation Entered: sigma = " << sigma << endl;
+		cout << "Gaussian Kernel Size: " << kernRow << " X " << kernRow << endl;
 	}
 	if (sigma < 1) { // checking if sigma is less than 1
 		kernRow = 3; // assign smallest kernel size: 3
