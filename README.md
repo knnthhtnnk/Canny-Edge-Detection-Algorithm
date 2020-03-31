@@ -68,7 +68,7 @@ The pseudocode of this function is as follows:
 		Return weighted sum of the kernel
 	END FUNCTION
 
-## §§3. Reflection Padding
+## §3. Reflection Padding
 The pseudocode of this function is as follows:
 
 	FUNCTION Reflection Padding of Image
