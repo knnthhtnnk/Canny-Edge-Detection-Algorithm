@@ -50,11 +50,10 @@ int main() {
 	do {
 		cout << "\nWhich image do you want to use?\n" << endl;
 		cout << "1: Cana.raw \n2: Fruit.raw \n3: Img335.raw \n4: Lamp.raw \n5: Leaf.raw" << endl;
-		//cout << "1: Cana.raw" << endl << "2: Fruit.raw" << endl << "3: Img335.raw" << endl << "4: Lamp.raw" << endl << "5: Leaf.raw" << endl;
 		cout << "\nPlease enter your choice: ";
 		int choice;
 		cin >> choice;
-
+		
 		switch (choice) {
 		case 1:
 			imgMat = convertBinToMat(cana, colCana, rowCana);
@@ -77,10 +76,12 @@ int main() {
 			valid = true;
 			break;
 		default:
-			cout << "\nPlease enter an integer from 1 to 5!" << endl;
+			cout << "\nWrong Input!\nPlease only enter an INTEGER from 1 to 5!" << endl;
 			valid = false;
 			break;
 		}
+		cin.clear(); // clear the cin error flags
+		cin.ignore(); // clear the cin buffer
 	} while (!valid);
 		
 	// Noise Smoothing with Gaussian Kernel //
