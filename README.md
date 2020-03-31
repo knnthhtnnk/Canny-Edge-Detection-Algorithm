@@ -1,6 +1,8 @@
 # Canny Edge Detection Algorithm
 
-## Main Function
+## **Using OpenCV v4.2.0 with Visual Studio 2019**
+
+### Main Function
 Firstly, the main function prompts the user to choose which image they wish to perform Canny Edge Detection on. The chosen image will then be converted from its original .raw format into an OpenCV Mat object by the function described in **§1** below.
 
 Next, the user is prompted to input a standard deviation of their choice. This standard deviation will be used to generate the Gaussian kernel in **§2** below which is used to smooth out any noise present in the image. The generated Gaussian kernel is then displayed in the command window along with its dimensions and weighted sum.
@@ -20,7 +22,7 @@ However, it was observed that the thinned image still contained a substantial am
 Finally, after hysteresis thresholding, the resulting image was then displayed in a new window, along with the original and thinned images.
 
 
-## §1. Converting .RAW files into OpenCV Mat objects
+### §1. Converting .RAW files into OpenCV Mat objects
 The images provided possessed a .raw file extension which indicated that none of the image data were compressed, which makes the images higher in quality. However, this means that the images are in binary format, which OpenCV is unable to display using its in-built imshow() function. Therefore, it is necessary to convert the binary data of the images into a Mat object which OpenCV can then parse and display.
 
 The pseudocode of this function is as follows:
@@ -34,7 +36,7 @@ The pseudocode of this function is as follows:
 	 	Return Mat image
 	END FUNCTION
 
-## §2. Generating the Gaussian Smoothing Kernel
+### §2. Generating the Gaussian Smoothing Kernel
 Before doing any further processing of the image, smoothing of the image using a Gaussian Kernel should be carried out to remove the noise.
 
 The pseudocode of this function is as follows:
@@ -68,7 +70,7 @@ The pseudocode of this function is as follows:
 		Return weighted sum of the kernel
 	END FUNCTION
 
-## §3. Reflection Padding
+### §3. Reflection Padding
 The pseudocode of this function is as follows:
 
 	FUNCTION Reflection Padding of Image
@@ -78,7 +80,7 @@ The pseudocode of this function is as follows:
 		Return the resulting padded image
 	END FUNCTION
 
-## §4. Initialisation of a New Image
+### §4. Initialisation of a New Image
 The pseudocode of this function is as follows:
 
 	FUNCTION Initialising a New Mat Object with Zeros
@@ -96,7 +98,7 @@ The pseudocode of this function is as follows:
 		Return output image
 	END FUNCTION
 
-## §5. Convolution with Kernel
+### §5. Convolution with Kernel
 The pseudocode of this function is as follows:
 
 	FUNCTION Convolution of Image with Kernel
@@ -129,7 +131,7 @@ The pseudocode of this function is as follows:
 		Return output image
 	END FUNCTION
 
-## §6. Obtaining the Edge Map
+### §6. Obtaining the Edge Map
 The pseudocode of this function is as follows:
 
 	FUNCTION Obtaining Edge Map
@@ -140,7 +142,7 @@ The pseudocode of this function is as follows:
 		Return output image
 	END FUNCTION
 
-## §7. Non-Maximum Suppression
+### §7. Non-Maximum Suppression
 After obtaining the edge map, it can be observed that the edges are thick, and one is unable to make out the fine details of the image. Therefore, non-maximum suppression was utilised in order to thin the edges so that the edge map can be studied in greater detail. This was achieved by scanning through every pixel within the edge map and computing the local maximum. If a particular pixel is the local maximum, it will retain its pixel value, however, if it is not the local maximum, its pixel value will be suppressed, i.e. assigned a zero value. Only the four orthogonal directions, horizontal, vertical, top left to bottom right, and bottom left to top right, were taken into consideration.
 
 The pseudocode for this function is as follows:
