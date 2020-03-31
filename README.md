@@ -1,11 +1,13 @@
 # Canny Edge Detection Algorithm
 
-# Main Function
+## Main Function
 Firstly, the main function prompts the user to choose which image they wish to perform Canny Edge Detection on. The chosen image will then be converted from its original .raw format into an OpenCV Mat object by the function described in **§1** below.
 
 Next, the user is prompted to input a standard deviation of their choice. This standard deviation will be used to generate the Gaussian kernel in **§2** below which is used to smooth out any noise present in the image. The generated Gaussian kernel is then displayed in the command window along with its dimensions and weighted sum.
 
 Before the image was convoluted with the Gaussian kernel, it was padded (reflection) in order to avoid a dimension reduction at the borders. This was implemented with the function described in **§3** below.
+
+The function in **§4** initialises new Mat objects with the similar dimensions as the source but populated with zeros.
 
 After padding the image, a 2-dimensional convolution of the image with the generated Gaussian kernel was then performed with the use of the function described in **§5** below, resulting image in a smoothed image.
 
