@@ -23,82 +23,55 @@ The images provided possessed a .raw file extension which indicated that none of
 
 The pseudocode of this function is as follows:
 
-FUNCTION Convert Binary Image to Mat Object
+	FUNCTION Convert Binary Image to Mat Object
 
-	Declare the chosen image as an input for the file stream, indicating that it is in binary
+	 Declare the chosen image as an input for the file stream, indicating that it is in binary
 	
-	Declare a vector of unsigned characters to contain the image data
+	 Declare a vector of unsigned characters to contain the image data
 	
-	Declare a vector of unsigned characters to contain the dimensions of the image
+	 Declare a vector of unsigned characters to contain the dimensions of the image
 	
-	Declare a Mat object which is of the CV_8UC1 (8-bit unsigned, single channel) type
+	 Declare a Mat object which is of the CV_8UC1 (8-bit unsigned, single channel) type
 	
-	Copy the image data from the vector into the Mat object
+	 Copy the image data from the vector into the Mat object
 	
-	Return Mat image
+	 Return Mat image
 
-END FUNCTION
+	END FUNCTION
 
 ## 2. Generating the Gaussian Smoothing Kernel
 Before doing any further processing of the image, smoothing of the image using a Gaussian Kernel should be carried out to remove the noise.
 
 The pseudocode of this function is as follows:
 
-FUNCTION Generating Gaussian Smoothing Kernel
-	
-	Declare temporary sigma variable with type double with initial value of 0.0
-	
-	Declare the kernel row and index variables with type double with initial values of 0.0
-	
-	IF Standard Deviation (SD) is greater than or equal to 1
-		
-		Assign to temporary sigma variable the ceiling value of SD
-		
-		IF ceiling(SD) modulo 2 is equal to 0 *SD is an even number*
-			
-			Assign kernel row to be 5 times of SD plus 1
-		
+	FUNCTION Generating Gaussian Smoothing Kernel
+		Declare temporary sigma variable with type double with initial value of 0.0
+		Declare the kernel row and index variables with type double with initial values of 0.0
+		IF Standard Deviation (SD) is greater than or equal to 1
+			Assign to temporary sigma variable the ceiling value of SD
+			IF ceiling(SD) modulo 2 is equal to 0 *SD is an even number*
+				Assign kernel row to be 5 times of SD plus 1
+			END IF
+			IF ceiling(SD) modulo 2 is equal to 1 *SD is an odd number*		
+				Assign kernel row to be 5 times of SD
+			END IF
 		END IF
-		
-		IF ceiling(SD) modulo 2 is equal to 1 *SD is an odd number*
-			
-			Assign kernel row to be 5 times of SD
-		
+		IF SD is less than 1
+			Assign the kernel row to 3, which is the smallest kernel size
 		END IF
-	
-	END IF
-	
-	IF SD is less than 1
-		
-		Assign the kernel row to 3, which is the smallest kernel size
-	
-	END IF
-
-Assign the kernel index to be equal to the kernel row minus 1 then divided by 2
-
-Call the Gaussian Formula with x and y both equal to the complement of the kernel index
-
-FOR every row of the kernel with post-incrementation
-	
-	Declare a temporary vector with type double to hold kernel values
-	
-	FOR every column of the kernel with post-incrementation
-		
-		Compute value of each pixel with the Gaussian Formula
-		
-		Assign the computed pixel value to the temporary kernel
-		
-		Compute the weighted sum of the kernel
-	
-	END FOR
-	
-	Assign the computed pixel value to the actual Gaussian kernel
-
-END FOR
-
-Return weighted sum of the kernel
-
-END FUNCTION
+		Assign the kernel index to be equal to the kernel row minus 1 then divided by 2
+		Call the Gaussian Formula with x and y both equal to the complement of the kernel index
+		FOR every row of the kernel with post-incrementation
+			Declare a temporary vector with type double to hold kernel values
+			FOR every column of the kernel with post-incrementation
+				Compute value of each pixel with the Gaussian Formula
+				Assign the computed pixel value to the temporary kernel
+				Compute the weighted sum of the kernel
+			END FOR
+			Assign the computed pixel value to the actual Gaussian kernel
+		END FOR
+		Return weighted sum of the kernel
+	END FUNCTION
 
 ## 3. Reflection Padding
 The pseudocode of this function is as follows:
