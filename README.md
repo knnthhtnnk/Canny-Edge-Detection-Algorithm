@@ -16,12 +16,12 @@ The images provided possessed a .raw file extension which indicated that none of
 
 The pseudocode of this function is as follows:
 FUNCTION Convert Binary Image to Mat Object
-  Declare the chosen image as an input for the file stream, indicating that it is in binary
-  Declare a vector of unsigned characters to contain the image data
-  Declare a vector of unsigned characters to contain the dimensions of the image
-  Declare a Mat object which is of the CV_8UC1 (8-bit unsigned, single channel) type
-  Copy the image data from the vector into the Mat object
-  Return Mat image
+	Declare the chosen image as an input for the file stream, indicating that it is in binary
+	Declare a vector of unsigned characters to contain the image data
+	Declare a vector of unsigned characters to contain the dimensions of the image
+	Declare a Mat object which is of the CV_8UC1 (8-bit unsigned, single channel) type
+	Copy the image data from the vector into the Mat object
+	Return Mat image
 END FUNCTION
 
 # 2. Generating the Gaussian Smoothing Kernel
